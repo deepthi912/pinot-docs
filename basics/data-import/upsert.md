@@ -155,6 +155,8 @@ By default, Pinot uses the value in the time column (`timeColumn` in tableConfig
 
 For partial upsert table, the out-of-order events won't be consumed and indexed. For example, for two records with the same primary key, if the record with the smaller value of the comparison column came later than the other record, it will be skipped.
 
+NOTE: Please use `comparisonColumns` for single comparison column as well instead of `comparisonColumn` as it is currently deprecated. You may see unrecognizedProperties when using the old config, but it's converted to comparisonColumns automatically when adding the table.
+
 #### Multiple comparison columns
 
 In some cases, especially where partial upsert might be employed, there may be multiple producers of data each writing to a mutually exclusive set of columns, sharing only the primary key. In such a case, it may be helpful to use one comparison column per producer group so that each group can manage its own specific versioning semantics without the need to coordinate versioning across other producer groups.
@@ -341,9 +343,9 @@ When using `deletedKeysTTL` together with `UpsertCompactionTask`, there can be a
 }
 ```
 
-### Data consistency when queries and upserts happen concurrently&#x20;
+### Data consistency when queries and upserts happen concurrently
 
-Previously, queries may see inconsistent data when queries and upserts are happening concurrently. For example, a table with 1M primary keys should always return 1M when doing `distinct count` no matter how new records are ingested and invalidating the existing records. But one may see more or less than 1M distinct count of records, when queries and upserts are happening concurrently. This is because the query acquires multiple segments' validDocIds bitmaps to skip invalid docs, to form a data view that only contains latest valid docs. But acquiring bitmaps from _multiple_ _segments_ is not atomic against ongoing upserts, so the query might over or under count the valid docs.&#x20;
+Previously, queries may see inconsistent data when queries and upserts are happening concurrently. For example, a table with 1M primary keys should always return 1M when doing `distinct count` no matter how new records are ingested and invalidating the existing records. But one may see more or less than 1M distinct count of records, when queries and upserts are happening concurrently. This is because the query acquires multiple segments' validDocIds bitmaps to skip invalid docs, to form a data view that only contains latest valid docs. But acquiring bitmaps from _multiple_ _segments_ is not atomic against ongoing upserts, so the query might over or under count the valid docs.
 
 This is a classic concurrency problem of concurrent reads and writes, and typically one can use lock or snapshot to solve it. So two consistency modes, SYNC and SNAPSHOT, are added for upsert tables to ensure data consistency when queries and upserts happen concurrently.
 
